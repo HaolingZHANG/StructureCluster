@@ -1,6 +1,5 @@
 from numpy import array, zeros, linalg, mean, sum
 
-
 from monitor import Monitor
 
 

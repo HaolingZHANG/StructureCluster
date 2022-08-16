@@ -1,8 +1,11 @@
-import warnings
 from Bio.PDB.Atom import Atom
 from enum import Enum
 from os import environ
 from numpy import array
+from warnings import filterwarnings
+
+
+filterwarnings("ignore")
 
 
 protein_letters = {
@@ -324,7 +327,6 @@ def set_motif_file(motif_segment, motif_structures, cluster_index=None,
     :return: file path(s) of protein.
     :rtype: str or list
     """
-    warnings.filterwarnings("ignore")
     if save_path is None:
         save_path = environ["TMP"].replace("\\", "/") + "/"
     form = ["N", "CA", "C"]
