@@ -1,7 +1,5 @@
 from numpy import array, zeros, linalg, mean, sum
 
-from monitor import Monitor
-
 
 class Motif(object):
 
@@ -21,7 +19,7 @@ class Motif(object):
 
 def collect_motifs(sequence, motif_length):
     """
-    Collect motifs (by k-mer method) from all the amino acid sequence.
+    Collect motifs (by k-mer method) from the amino acid sequence.
 
     :param sequence: amino acid sequence.
     :type sequence: list
@@ -35,7 +33,7 @@ def collect_motifs(sequence, motif_length):
     .. note::
         reference: Phillip E. C. Compeau, Pavel A. Pevzner, and Glenn Tesler (2011) Nat. Biotechnol.
     """
-    data, monitor = [], Monitor()
+    data = []
     if len(sequence) > motif_length + 1:
         for location in range(len(sequence) - motif_length + 1):
             data.append((sequence[location: location + motif_length], location))
@@ -43,7 +41,7 @@ def collect_motifs(sequence, motif_length):
     return data
 
 
-def cluster_motifs(method, locations, position_groups, resolutions, verbose=False):
+def cluster_motifs(method, locations, position_groups, resolutions):
     """
     Cluster motif structures based on depth first search as connected components of undirected graphs.
 
@@ -59,24 +57,16 @@ def cluster_motifs(method, locations, position_groups, resolutions, verbose=Fals
     :param resolutions: resolution of each corresponding structure in the protein database.
     :type resolutions: list
 
-    :param verbose: need display the monitor.
-    :type verbose: bool
-
     :return: cluster group of the token.
     :rtype: list
 
     .. note::
         reference: John Hopcroft, Robert Tarjan (1973) Commun. ACM
     """
-    monitor = Monitor()
-
     if len(position_groups) == 1:
         return [[locations[0]]], position_groups[0], zeros(shape=(1, 1))
 
-    if verbose:
-        print("Cluster " + str(len(position_groups)) + " structures.")
-
-    index_clusters, current = [], 0
+    index_clusters = []
     for candidate in range(len(locations)):
         related_indices = []
         for index, cluster in enumerate(index_clusters):
@@ -99,14 +89,7 @@ def cluster_motifs(method, locations, position_groups, resolutions, verbose=Fals
                     temp_clusters[related_indices[0]] += cluster
             index_clusters = temp_clusters
 
-        if verbose:
-            monitor.output(current + 1, len(locations), extra={"C": len(index_clusters)})
-            current += 1
-
     index_clusters = sorted(index_clusters, key=lambda c: len(c), reverse=True)
-
-    if verbose:
-        print("Generate reference structures.")
 
     clusters, reference_structures, reference_resolutions, inner_distances = [], [], [], []
     for index, index_cluster in enumerate(index_clusters):
@@ -136,15 +119,8 @@ def cluster_motifs(method, locations, position_groups, resolutions, verbose=Fals
         reference_structures.append(structure)
         reference_resolutions.append(resolution)
 
-        if verbose:
-            monitor.output(index + 1, len(index_clusters))
-
-    if verbose:
-        print("Generate atomic distances.")
-
     count = len(index_clusters)
     distances = zeros(shape=(count, count))
-    current, total = 0, int((len(index_clusters) ** 2 - len(index_clusters)) / 2)
     for index_1 in range(count):
         distances[index_1][index_1] = inner_distances[index_1]
         for index_2 in range(index_1 + 1, count):
@@ -153,23 +129,21 @@ def cluster_motifs(method, locations, position_groups, resolutions, verbose=Fals
             distances[index_1][index_2] = distance
             distances[index_2][index_1] = distance
 
-            if verbose:
-                monitor.output(current + 1, total)
-                current += 1
-
     return clusters, array(reference_structures), distances
 
 
 def calculate_concentration(clusters):
     """
     Calculate the structure cluster concentration of a type of motif (1 minus Simpson's diversity index).
-    |cite| Edward H. Simpson (1949) Nature
 
     :param clusters: structure clusters of a token.
     :type clusters: list
 
     :return: concentration index.
     :rtype: float
+
+    .. note::
+        Reference: Edward H. Simpson (1949) Nature
     """
     if len(clusters) == 1:
         return 1.0
